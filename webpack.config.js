@@ -33,7 +33,13 @@ const config = {
                 to: 'img'
             }
         ])
-    ]
+    ],
+
+    devServer: {
+        contentBase: path.join(__dirname, 'dist'),
+        compress: false,
+        port: 9000
+    }
 };
 
 module.exports = config;

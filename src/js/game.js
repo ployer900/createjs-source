@@ -10,6 +10,8 @@
 //引入createjs库
 require('../lib/easeljs-0.8.2.combined.js');
 
+var config = require('./config.js');
+
 var game = function() {
     var clientW = window.innerWidth || document.documentElement.clientWidth;
     var clientH = window.innerHeight || document.documentElement.clientHeight;
@@ -22,14 +24,14 @@ var game = function() {
 
     //实例化舞台元素
     this.stage = new createjs.Stage(this.ticketCanvas);
-    
+
     createjs.Touch.enable(this.stage);
     createjs.Ticker.addEventListener('tick', function() {
         this.stage.update();
     }.bind(this));
     createjs.Ticker.timingMode = createjs.Ticker.RAF;
 
-    this.init();  
+    this.init();
 };
 
 /**
@@ -37,9 +39,14 @@ var game = function() {
  * @return {[type]} [description]
  */
 game.prototype.init = function() {
+    //游戏时长
+    this.duration = config.duration;
+    //红包
+    this.redbags = [];
+    //游戏结束回调
+    this.gameOverCb = null;
     //红包宽高
     this.redbagW = this.redbagH = this.ticketCanvas.width / 4;
-
     //添加物件
     this.buildGameWidget();
 }
@@ -50,10 +57,8 @@ game.prototype.init = function() {
  * @return {[type]} [description]
  */
 game.prototype.buildGameWidget = function() {
-
     //绘制背景
     this.buildBackgroundWidget();
-
     //绘制红包
     this.buildRedbagWidget();
 }
@@ -73,14 +78,114 @@ game.prototype.buildBackgroundWidget = function() {
 
 /**
  * 绘制红包
- * @return {[type]} [description]
+ * @param  {[type]} x [description]
+ * @param  {[type]} y [description]
+ * @return {[type]}   [description]
  */
 game.prototype.buildRedbagWidget = function() {
+    var w = this.redbagW;
+    var h = this.redbagH;
+    var canvasH = this.ticketCanvas.height;
     // body...
-    this.redbag = new createjs.Shape();
-    this.redbag.graphics.beginFill('#30cff3').drawRect(10, 10, this.redbagW, this.redbagW);
-    this.stage.addChild(this.redbag);
+    for (var i = 0; i < 7; i++) {
+        var redbag = new createjs.Shape();
+        var j = this.randomX();
+        redbag.graphics.beginFill(this.randomColor()).drawRect(0, 0, w, h);
+        redbag.x = j * w;
+        redbag.y = canvasH - (h * (7 - i));
+        this.stage.addChild(redbag);
+        //缓存红包物件
+        this.redbags.push(redbag);
+    }
+}
+
+/**
+ * 开始倒计时
+ * @return {[type]} [description]
+ */
+game.prototype.startCountdown = function () {
+    this.countdownTimer = setTimeout(function () {
+        this.duration--;
+        if (this.duration >= 0) {
+            this.startCountdown();
+        } else {
+            createjs.Ticker.paused = true;
+            setTimeout(function () {
+                //游戏结束
+                this.gameOvered();
+            }.bind(this), 2000);
+        }
+    }.bind(this), 1000);
+}
+
+/**
+ * 开始游戏
+ * @return {[type]} [description]
+ */
+game.prototype.startGame = function(cb) {
+    this.startCountdown();
+    this.gameOvered = cb;
+    createjs.Ticker.on('tick', this.updateFrame.bind(this));
+}
+
+/**
+ * 隐藏红包
+ * @return {[type]} [description]
+ */
+game.prototype.hideRedbag = function (redbag, paused) {
+    redbag.visible = !paused;
+}
+
+/**
+ * 更新游戏画面
+ * @return {[type]} [description]
+ */
+game.prototype.updateFrame = function (evt) {
+    var canvasH = this.ticketCanvas.height;
+    var redbags = this.redbags;
+    var w = this.redbagW;
+    var h = this.redbagH;
+    var step = config.step;
+
+    //飘红包
+    for (var i = 0, count = redbags.length; i < count; i++) {
+        var redbag = redbags[i];
+        redbag.y += step;
+
+        if (redbag.y >= canvasH + h) {
+            redbag.x = this.randomX() * w;
+            redbag.y = -h;
+            //隐藏红包不显示
+            this.hideRedbag(redbag, evt.paused);
+        }
+    }
+};
+
+/**
+ * 游戏结束
+ * @return {[type]} [description]
+ */
+game.prototype.gameOvered = function () {
+    this.gameOverCb && this.gameOverCb();
+}
+
+/**
+ * 随机轨道值0,1,2,3
+ * @return {[type]} [description]
+ */
+game.prototype.randomX = function () {
+    return Math.floor((Math.random(0, 1) * 4));
+}
+
+/**
+ * 随机颜色
+ * @return {[type]} [description]
+ */
+game.prototype.randomColor = function () {
+    return '#' + Math.floor(Math.random() * 0Xffffff).toString(16);
 }
 
 
-new game();
+new game().startGame(function () {
+    console.log('game over');
+});
