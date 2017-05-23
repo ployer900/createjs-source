@@ -2,7 +2,7 @@
 * @Author: yuhongliang
 * @Date:   2017-05-18 17:51:05
 * @Last Modified by:   yuhongliang
-* @Last Modified time: 2017-05-23 19:52:09
+* @Last Modified time: 2017-05-23 20:49:07
 */
 
 'use strict';
@@ -29,6 +29,7 @@ var game = function() {
         this.stage.update();
     }.bind(this));
     createjs.Ticker.timingMode = createjs.Ticker.RAF;
+    // createjs.Ticker.interval = 200;
 
     this.init();
 };
@@ -38,6 +39,8 @@ var game = function() {
  * @return {[type]} [description]
  */
 game.prototype.init = function() {
+    this.count = 0;
+    this.timerCount = 0;
     //游戏时长
     this.duration = config.duration;
     //红包
@@ -59,7 +62,7 @@ game.prototype.buildGameWidget = function() {
     //绘制背景
     this.buildBackgroundWidget();
     //绘制红包
-    this.buildRedbagWidget();
+    // this.buildRedbagWidget();
 }
 
 /**
@@ -106,14 +109,18 @@ game.prototype.buildRedbagWidget = function() {
 game.prototype.startCountdown = function () {
     this.countdownTimer = setTimeout(function () {
         this.duration--;
+        console.log(this.count);
         if (this.duration >= 0) {
             this.startCountdown();
         } else {
-            createjs.Ticker.paused = true;
-            setTimeout(function () {
-                //游戏结束
-                this.gameOvered();
-            }.bind(this), 2000);
+            if (this.count == 0) {
+                // createjs.Ticker.paused = true;
+                setTimeout(function () {
+                    //游戏结束
+                    createjs.Ticker.paused = true;
+                    this.gameOvered();
+                }.bind(this), 1000);
+            } else {}
         }
     }.bind(this), 1000);
 }
@@ -141,25 +148,27 @@ game.prototype.hideRedbag = function (redbag, paused) {
  * @return {[type]} [description]
  */
 game.prototype.updateFrame = function (evt) {
-    var canvasH = this.ticketCanvas.height;
-    var redbags = this.redbags;
     var w = this.redbagW;
-    var h = this.redbagH;
-    var step = config.step;
+    var x = this.randomX();
+    var y = 0;
 
-    //飘红包
-    for (var i = 0, count = redbags.length; i < count; i++) {
-        var redbag = redbags[i];
-        redbag.y += step;
+    var redbag = new createjs.Shape();
+    redbag.graphics.beginFill(this.randomColor()).drawRect(0, 0, w, w);
+    redbag.x = x * w;
+    redbag.y = 0;
+    redbag.rotation = 15;
 
-        if (redbag.y >= canvasH + h) {
-            redbag.x = this.randomX() * w;
-            redbag.y = -h;
-            //隐藏红包不显示
-            this.hideRedbag(redbag, evt.paused);
-        }
+    if (this.timerCount == 20 && !evt.paused) {
+        this.timerCount = 0;
+        this.stage.addChild(redbag);
+        this.count++;
+        console.log(this.count);
+        createjs.Tween.get(redbag)
+                .to({y: this.ticketCanvas.height }, 1400)
+                .call(function() { this.count--; this.stage.removeChild(redbag); }.bind(this));
+    } else {
+        this.timerCount++;
     }
-    
 };
 
 /**
