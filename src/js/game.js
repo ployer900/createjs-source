@@ -11,6 +11,10 @@
 require('../lib/createjs-2015.11.26.combined.js');
 var config = require('./config.js');
 
+//分频计数器
+var FREQUENCY_DIVISION = 60 / config.frequency;
+
+//构建游戏类
 var game = function() {
     var clientW = window.innerWidth || document.documentElement.clientWidth;
     var clientH = window.innerHeight || document.documentElement.clientHeight;
@@ -24,13 +28,14 @@ var game = function() {
     //实例化舞台元素
     this.stage = new createjs.Stage(this.ticketCanvas);
 
+    //使能ticker
     createjs.Touch.enable(this.stage);
     createjs.Ticker.addEventListener('tick', function() {
         this.stage.update();
     }.bind(this));
     createjs.Ticker.timingMode = createjs.Ticker.RAF;
-    // createjs.Ticker.interval = 200;
 
+    //初始化
     this.init();
 };
 
@@ -39,14 +44,16 @@ var game = function() {
  * @return {[type]} [description]
  */
 game.prototype.init = function() {
-    this.count = 0;
-    this.timerCount = 0;
+    //是否停止添加红包
+    this.timeout = false;
+    //已添加红包个数
+    this.addedCount = 0;
+    //时间分频
+    this.frequencyDivision = 0;
     //游戏时长
     this.duration = config.duration;
-    //红包
-    this.redbags = [];
     //游戏结束回调
-    this.gameOverCb = null;
+    this.gameEndedCallback = null;
     //红包宽高
     this.redbagW = this.redbagH = this.ticketCanvas.width / 4;
     //添加物件
@@ -61,8 +68,6 @@ game.prototype.init = function() {
 game.prototype.buildGameWidget = function() {
     //绘制背景
     this.buildBackgroundWidget();
-    //绘制红包
-    // this.buildRedbagWidget();
 }
 
 /**
@@ -79,48 +84,16 @@ game.prototype.buildBackgroundWidget = function() {
 }
 
 /**
- * 绘制红包
- * @param  {[type]} x [description]
- * @param  {[type]} y [description]
- * @return {[type]}   [description]
- */
-game.prototype.buildRedbagWidget = function() {
-    var w = this.redbagW / 2;
-    var h = this.redbagH / 2;
-    var canvasH = this.ticketCanvas.height;
-    // body...
-    for (var i = 0; i < 7; i++) {
-        var redbag = new createjs.Shape();
-        var j = this.randomX();
-        redbag.graphics.beginFill(this.randomColor()).drawRect(0, 0, w, h);
-        redbag.x = j * w;
-        redbag.y = canvasH - (h * (7 - i));
-        redbag.rotation = 15;
-        this.stage.addChild(redbag);
-        //缓存红包物件
-        this.redbags.push(redbag);
-    }
-}
-
-/**
  * 开始倒计时
  * @return {[type]} [description]
  */
 game.prototype.startCountdown = function () {
     this.countdownTimer = setTimeout(function () {
         this.duration--;
-        console.log(this.count);
         if (this.duration >= 0) {
             this.startCountdown();
         } else {
-            if (this.count == 0) {
-                // createjs.Ticker.paused = true;
-                setTimeout(function () {
-                    //游戏结束
-                    createjs.Ticker.paused = true;
-                    this.gameOvered();
-                }.bind(this), 1000);
-            } else {}
+            this.timeout = true;
         }
     }.bind(this), 1000);
 }
@@ -131,23 +104,17 @@ game.prototype.startCountdown = function () {
  */
 game.prototype.startGame = function(cb) {
     this.startCountdown();
-    this.gameOvered = cb;
+    this.gameEndedCallback = cb;
     createjs.Ticker.on('tick', this.updateFrame.bind(this));
 }
 
 /**
- * 隐藏红包
- * @return {[type]} [description]
- */
-game.prototype.hideRedbag = function (redbag, paused) {
-    redbag.visible = !paused;
-}
-
-/**
- * 更新游戏画面
- * @return {[type]} [description]
+ * 绘制游戏
+ * @param  {[type]} evt [description]
+ * @return {[type]}     [description]
  */
 game.prototype.updateFrame = function (evt) {
+    if (evt.paused) return;
     var w = this.redbagW;
     var x = this.randomX();
     var y = 0;
@@ -158,25 +125,33 @@ game.prototype.updateFrame = function (evt) {
     redbag.y = 0;
     redbag.rotation = 15;
 
-    if (this.timerCount == 20 && !evt.paused) {
-        this.timerCount = 0;
-        this.stage.addChild(redbag);
-        this.count++;
-        console.log(this.count);
-        createjs.Tween.get(redbag)
-                .to({y: this.ticketCanvas.height }, 1400)
-                .call(function() { this.count--; this.stage.removeChild(redbag); }.bind(this));
+    //时间到
+    if (!this.timeout) {
+        if (this.frequencyDivision == FREQUENCY_DIVISION) {
+            this.frequencyDivision = 0;
+            this.stage.addChild(redbag);
+            this.addedCount++;
+            createjs.Tween.get(redbag)
+                    .to({ y: this.ticketCanvas.height }, config.moveDuration)
+                    .call(function() { this.addedCount--; this.stage.removeChild(redbag); }.bind(this));
+        } else {
+            this.frequencyDivision++;
+        }
     } else {
-        this.timerCount++;
-    }
+        if (this.addedCount == 0) {
+            createjs.Ticker.paused = true;
+            //调用游戏结束回调函数
+            this.gameEnded();
+        }
+    };
 };
 
 /**
  * 游戏结束
  * @return {[type]} [description]
  */
-game.prototype.gameOvered = function () {
-    this.gameOverCb && this.gameOverCb();
+game.prototype.gameEnded = function () {
+    this.gameEndedCallback && this.gameEndedCallback();
 }
 
 /**
@@ -196,6 +171,7 @@ game.prototype.randomColor = function () {
 }
 
 
+//初始化，启动游戏
 new game().startGame(function () {
     console.log('game over');
 });
