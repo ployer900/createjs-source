@@ -3,6 +3,6 @@
  */
 
 module.exports = {
-    duration: 10,
-    step: 8
+    duration: 5,
+    step: 10
 }

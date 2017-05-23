@@ -2,7 +2,7 @@
 * @Author: yuhongliang
 * @Date:   2017-05-18 17:49:51
 * @Last Modified by:   yuhongliang
-* @Last Modified time: 2017-05-19 11:26:53
+* @Last Modified time: 2017-05-23 19:50:26
 */
 
 'use strict';
@@ -19,6 +19,14 @@ const config = {
     },
 
     plugins: [
+      new webpack.optimize.UglifyJsPlugin({
+          compress: {
+              warnings: false
+          },
+          output: {
+              comments: false
+          }
+      }),
         new CopyWebpackPlugin([
             {
                 from: 'src/index.html',

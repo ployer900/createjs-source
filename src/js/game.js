@@ -2,14 +2,13 @@
 * @Author: yuhongliang
 * @Date:   2017-05-18 17:51:05
 * @Last Modified by:   yuhongliang
-* @Last Modified time: 2017-05-19 12:15:36
+* @Last Modified time: 2017-05-23 19:52:09
 */
 
 'use strict';
 
 //引入createjs库
-require('../lib/easeljs-0.8.2.combined.js');
-
+require('../lib/createjs-2015.11.26.combined.js');
 var config = require('./config.js');
 
 var game = function() {
@@ -83,8 +82,8 @@ game.prototype.buildBackgroundWidget = function() {
  * @return {[type]}   [description]
  */
 game.prototype.buildRedbagWidget = function() {
-    var w = this.redbagW;
-    var h = this.redbagH;
+    var w = this.redbagW / 2;
+    var h = this.redbagH / 2;
     var canvasH = this.ticketCanvas.height;
     // body...
     for (var i = 0; i < 7; i++) {
@@ -93,6 +92,7 @@ game.prototype.buildRedbagWidget = function() {
         redbag.graphics.beginFill(this.randomColor()).drawRect(0, 0, w, h);
         redbag.x = j * w;
         redbag.y = canvasH - (h * (7 - i));
+        redbag.rotation = 15;
         this.stage.addChild(redbag);
         //缓存红包物件
         this.redbags.push(redbag);
@@ -159,6 +159,7 @@ game.prototype.updateFrame = function (evt) {
             this.hideRedbag(redbag, evt.paused);
         }
     }
+    
 };
 
 /**
