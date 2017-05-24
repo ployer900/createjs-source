@@ -2,7 +2,7 @@
 * @Author: yuhongliang
 * @Date:   2017-05-18 17:55:38
 * @Last Modified by:   yuhongliang
-* @Last Modified time: 2017-05-19 11:33:42
+* @Last Modified time: 2017-05-24 11:23:01
 */
 * {
     margin: 0;
@@ -19,4 +19,19 @@
 .canvas {
     width: 100%;
     height: 100%;
+}
+
+.layout {
+    display: none;
+    position: fixed;
+    width: 60%;
+    padding-bottom: 60%;
+
+    left: 50%;
+    top: 50%;
+    transform: translate3d(-50%, -50%, 0);
+    -webkit-transform: translate3d(-50%, -50%, 0);
+
+    background-color: rgba(51, 51, 51, 0.8);
+    z-index: 10;
 }

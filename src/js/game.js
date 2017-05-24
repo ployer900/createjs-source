@@ -2,7 +2,7 @@
 * @Author: yuhongliang
 * @Date:   2017-05-18 17:51:05
 * @Last Modified by:   yuhongliang
-* @Last Modified time: 2017-05-23 20:49:07
+* @Last Modified time: 2017-05-24 13:55:56
 */
 
 'use strict';
@@ -10,6 +10,7 @@
 //引入createjs库
 require('../lib/createjs-2015.11.26.combined.js');
 var config = require('./config.js');
+var redbag = require('./redbag.js');
 
 //分频计数器
 var FREQUENCY_DIVISION = 60 / config.frequency;
@@ -52,6 +53,7 @@ game.prototype.init = function() {
     this.frequencyDivision = 0;
     //游戏时长
     this.duration = config.duration;
+    this.clickedCount = 0;
     //游戏结束回调
     this.gameEndedCallback = null;
     //红包宽高
@@ -77,9 +79,6 @@ game.prototype.buildGameWidget = function() {
 game.prototype.buildBackgroundWidget = function() {
     this.background = new createjs.Shape();
     this.background.graphics.beginFill('rgba(0,0,0,0.5)').drawRect(0, 0, this.ticketCanvas.width, this.ticketCanvas.height);
-    this.background.addEventListener('click', function(e) {
-        console.log(e.stageX, e.stageY);
-    });
     this.stage.addChild(this.background);
 }
 
@@ -115,43 +114,55 @@ game.prototype.startGame = function(cb) {
  */
 game.prototype.updateFrame = function (evt) {
     if (evt.paused) return;
-    var w = this.redbagW;
-    var x = this.randomX();
-    var y = 0;
-
-    var redbag = new createjs.Shape();
-    redbag.graphics.beginFill(this.randomColor()).drawRect(0, 0, w, w);
-    redbag.x = x * w;
-    redbag.y = 0;
-    redbag.rotation = 15;
-
-    //时间到
+    //时间到，则停止添加下落红包
     if (!this.timeout) {
+        //分频添加
         if (this.frequencyDivision == FREQUENCY_DIVISION) {
+            var self = this;
+            var w = this.redbagW / 1.5;
+            var x = this.randomX();
+            var y = 0;
+            //添加红包
+            var canvasH = this.ticketCanvas.height;
+            var item = new redbag().setFrame(x, y, w, w)
+                                   .setRotationAngle(15)
+                                   .setType('normal')
+                                   .setClickedEvtHandler(this.redbagClickedHandler.bind(self))
+                                   .createRedbag();
             this.frequencyDivision = 0;
-            this.stage.addChild(redbag);
+            this.stage.addChild(item);
             this.addedCount++;
-            createjs.Tween.get(redbag)
-                    .to({ y: this.ticketCanvas.height }, config.moveDuration)
-                    .call(function() { this.addedCount--; this.stage.removeChild(redbag); }.bind(this));
-        } else {
+            createjs.Tween.get(item)
+                    .to({ y: canvasH }, config.moveDuration)
+                    .call(function() { this.addedCount--; this.stage.removeChild(item); }.bind(this));
+        } else { 
             this.frequencyDivision++;
         }
     } else {
+        //等待红包全部掉出屏幕
         if (this.addedCount == 0) {
             createjs.Ticker.paused = true;
             //调用游戏结束回调函数
-            this.gameEnded();
+            this.gameEnded(this.clickedCount);
         }
     };
 };
 
 /**
+ * 红包点击事件
+ * @param  {[type]} evt [description]
+ * @return {[type]}     [description]
+ */
+game.prototype.redbagClickedHandler = function(evt) {
+    this.clickedCount++;
+}
+
+/**
  * 游戏结束
  * @return {[type]} [description]
  */
-game.prototype.gameEnded = function () {
-    this.gameEndedCallback && this.gameEndedCallback();
+game.prototype.gameEnded = function (count) {
+    this.gameEndedCallback && this.gameEndedCallback(count);
 }
 
 /**
@@ -171,7 +182,5 @@ game.prototype.randomColor = function () {
 }
 
 
-//初始化，启动游戏
-new game().startGame(function () {
-    console.log('game over');
-});
+///exports
+module.exports = game;

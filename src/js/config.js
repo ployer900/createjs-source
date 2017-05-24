@@ -8,5 +8,5 @@ module.exports = {
     //游戏时长
     duration: 5,
     //红包掉落时间
-    moveDuration: 1000
+    moveDuration: 1500
 }

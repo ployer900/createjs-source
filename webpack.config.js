@@ -2,7 +2,7 @@
 * @Author: yuhongliang
 * @Date:   2017-05-18 17:49:51
 * @Last Modified by:   yuhongliang
-* @Last Modified time: 2017-05-23 19:50:26
+* @Last Modified time: 2017-05-24 11:18:47
 */
 
 'use strict';
@@ -12,13 +12,16 @@ const webpack = require('webpack');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 const config = {
-    entry: path.resolve('./src/js/game.js'),
+    entry: path.resolve('./src/js/index.js'),
     output: {
         path: path.resolve('dist/'),
-        filename: 'js/game.min.js'
+        filename: 'js/index.min.js'
     },
 
     plugins: [
+      new webpack.ProvidePlugin({
+          $: '../lib/zepto.js'
+      }),
       new webpack.optimize.UglifyJsPlugin({
           compress: {
               warnings: false
